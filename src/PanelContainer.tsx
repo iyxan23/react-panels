@@ -12,7 +12,7 @@ export interface PanelContainerProps {
   // in px, defaults to 10
   separatorWidth?: number;
 
-  orientation: Orientation
+  orientation: Orientation;
 }
 
 export interface PanelContainerContextObject {

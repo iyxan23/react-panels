@@ -1,7 +1,7 @@
 import logo from './logo.svg';
 import './App.css';
 import React from 'react';
-import { Panel, PanelContainer } from 'react-panels';
+import { Panel, PanelContainer, PanelGroup } from 'react-panels';
 
 function Main() {
   return (
@@ -27,10 +27,29 @@ function Main() {
 function App() {
   window.React1 = React;
   return (
-    <PanelContainer>
-      <Panel><Main/></Panel>
-      <Panel><Main/></Panel>
-    </PanelContainer>
+    <div style={{ height: '100vh', width: '100vw' }}>
+      <PanelContainer>
+        <Panel><Main/></Panel>
+        <PanelGroup orientation='vertical'>
+          <Panel>
+            <div style={{ backgroundColor: 'deepskyblue', color: 'white',
+              height: '100%',
+              display: 'flex', justifyContent: 'center', alignItems: 'center'
+            }}>
+              Hello world
+            </div>
+          </Panel>
+          <Panel>
+            <div style={{ backgroundColor: 'darkgreen', color: 'white',
+              height: '100%',
+              display: 'flex', justifyContent: 'center', alignItems: 'center'
+            }}>
+              Hello world
+            </div>
+          </Panel>
+        </PanelGroup>
+      </PanelContainer>
+    </div>
   )
 }
 
