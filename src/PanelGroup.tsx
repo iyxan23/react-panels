@@ -40,6 +40,7 @@ const PanelGroup = ({ childrenRatio, children, orientation }: PanelGroupProps): 
     throw new Error('PanelGroup can only be used under a PanelContainer');
   }
 
+  let [childrenRatioState, setChildrenRatioState] = useState(childrenRatio);
   let root = useRef<HTMLDivElement>(null);
 
   // can be either width / height, depends on the orientation
@@ -63,6 +64,9 @@ const PanelGroup = ({ childrenRatio, children, orientation }: PanelGroupProps): 
   // this might not be a good idea when there are a lot of content in the panels
   // we'll need to update our panels everytime the window resizes
   // but this rarely ever happen, soooooooooo
+
+  // fixme: should've re-render on PanelContainer instead
+  // since PanelGroups can nest together, this would be a mess
   window.onresize = calculateLength;
 
   // this looks kinda dumb, but we at first render this div, after that we retrieve the width / height
@@ -78,11 +82,11 @@ const PanelGroup = ({ childrenRatio, children, orientation }: PanelGroupProps): 
 
       {/* when we got the length and have a children */}
       {length !== null &&
-      children !== undefined &&
+       children !== undefined &&
 
       ('length' in children ? // check if its an array or an object
         children.map((child, idx) => {
-          const ratio = childrenRatio![idx];
+          const ratio = childrenRatioState![idx];
           const lengthProperty = orientation == 'vertical' ? 'height' : 'width';
 
           // not the prettiest solution
@@ -92,10 +96,39 @@ const PanelGroup = ({ childrenRatio, children, orientation }: PanelGroupProps): 
           let separatorStyle: React.CSSProperties = {};
           separatorStyle[lengthProperty] = panelContainerContext.separatorWidth;
 
-          return <>
-            <div key={idx} style={style}>{child}</div>
+          const separatorRef = useRef<HTMLDivElement>(null);
+          const childRef = useRef<HTMLDivElement>(null);
 
-            {children.length - 1 == idx || <div className='separator' style={separatorStyle} />}
+          return <>
+            <div ref={childRef} key={idx} style={style}>{child}</div>
+
+            {children.length - 1 == idx ||
+              <div
+                ref={separatorRef}
+                className='separator'
+                style={separatorStyle}
+                onMouseDown={() => {
+                  const separator = separatorRef.current!;
+                  const child = childRef.current!;
+
+                  panelContainerContext.showResizeIndicator(
+                    separator.offsetLeft, separator.offsetTop,
+                    separator.offsetHeight, separator.offsetWidth,
+                    orientation, child.offsetLeft, child.offsetLeft + child.offsetWidth,
+                    (delta) => {
+                      const percentage = child.offsetWidth - delta / length!;
+
+                      setChildrenRatioState((val) => {
+                        let cr = val!;
+
+                        cr[idx + 1] += cr[idx] - percentage;
+                        cr[idx] = percentage;
+
+                        return cr;
+                      });
+                    }
+                  );
+                }} />}
           </>;
 
         }) : (function() { // when its an object

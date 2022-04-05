@@ -39,7 +39,7 @@ export interface PanelContainerContextObject {
 
     orientation: Orientation,
 
-    // the bounds of this panel group, depends on orientation
+    // the bounds of this resize operation, depends on orientation
     //
     //         start -> end
     // vertical:   y -> y+ (down)
