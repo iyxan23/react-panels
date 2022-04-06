@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState, useMemo } from 'react';
 import { PanelChildren, PanelContainerContext } from './PanelContainer';
 
 export interface PanelGroupProps {
@@ -10,7 +10,8 @@ export interface PanelGroupProps {
 
 export type Orientation = 'vertical' | 'horizontal';
 
-const PanelGroup = ({ childrenRatio, children, orientation }: PanelGroupProps): JSX.Element => {
+// returns a generated childrenRatio if it wasn't specified
+function verifyChildren(childrenRatio?: Array<number>, children?: PanelChildren): Array<number> | undefined {
   if (childrenRatio !== undefined && children !== undefined && 'length' in children) {
     // verify childrenRatio's length against children's
     if (childrenRatio.length !== children.length) {
@@ -26,21 +27,32 @@ const PanelGroup = ({ childrenRatio, children, orientation }: PanelGroupProps): 
       throw new Error(`sum of childrenRatio is not close to 100 (${childrenRatioSum})`);
     }
 
+    // and check for negative numbers, i really hate them - unsigned ints on js wen
+    for (const n of childrenRatio) {
+      if (n < 0) throw new Error(`childrenRatio must not contain negative numbers`);
+    }
+
   } else if (children !== undefined) {
     // when children is filled but childrenRatio is not
     const numberOfChildren = 'length' in children ? children.length : 1;
     const value = 100 / numberOfChildren;
 
-    childrenRatio = new Array(numberOfChildren).fill(value);
+    return new Array(numberOfChildren).fill(value);
   }
+
+  return undefined;
+}
+
+const PanelGroup = ({ childrenRatio, children, orientation }: PanelGroupProps): JSX.Element => {
+  // verify props
+  childrenRatio = useMemo(() => verifyChildren(childrenRatio, children), []) ?? childrenRatio;
+
+  let [childrenRatioState, setChildrenRatioState] = useState<Array<number>>(childrenRatio!);
+  console.log(`children ratio state: ${childrenRatioState}`)
 
   const panelContainerContext = useContext(PanelContainerContext);
+  if (panelContainerContext == null) throw new Error('PanelGroup can only be used under a PanelContainer');
 
-  if (panelContainerContext == null) {
-    throw new Error('PanelGroup can only be used under a PanelContainer');
-  }
-
-  let [childrenRatioState, setChildrenRatioState] = useState(childrenRatio);
   let root = useRef<HTMLDivElement>(null);
 
   // can be either width / height, depends on the orientation
@@ -87,42 +99,64 @@ const PanelGroup = ({ childrenRatio, children, orientation }: PanelGroupProps): 
       ('length' in children ? // check if its an array or an object
         children.map((child, idx) => {
           const ratio = childrenRatioState![idx];
+          console.log(`ratio: ${ratio}`);
           const lengthProperty = orientation == 'vertical' ? 'height' : 'width';
 
           // not the prettiest solution
           let style: React.CSSProperties = {};
-          style[lengthProperty] = (ratio / 100) * length!;
+          style[lengthProperty] = ratio / 100 * length!;
 
           let separatorStyle: React.CSSProperties = {};
           separatorStyle[lengthProperty] = panelContainerContext.separatorWidth;
 
-          const separatorRef = useRef<HTMLDivElement>(null);
-          const childRef = useRef<HTMLDivElement>(null);
+          console.log(`result: ${style[lengthProperty]}`);
+
+          let separatorRef: HTMLDivElement | null = null;
+          let childRef: HTMLDivElement | null = null;
 
           return <>
-            <div ref={childRef} key={idx} style={style}>{child}</div>
+            <div ref={(cr) => childRef = cr} key={idx} style={style}>{child}</div>
 
             {children.length - 1 == idx ||
               <div
-                ref={separatorRef}
+                ref={(sr) => separatorRef = sr}
                 className='separator'
                 style={separatorStyle}
                 onMouseDown={() => {
-                  const separator = separatorRef.current!;
-                  const child = childRef.current!;
+                  console.log('mouse down s!');
+                  if (separatorRef == null || childRef == null) return;
+                  console.log('mouse down!');
+
+                  const vertical = orientation == 'vertical';
+
+                  const separatorBounds = separatorRef.getBoundingClientRect();
+                  const rootBounds = root.current!.getBoundingClientRect();
 
                   panelContainerContext.showResizeIndicator(
-                    separator.offsetLeft, separator.offsetTop,
-                    separator.offsetHeight, separator.offsetWidth,
-                    orientation, child.offsetLeft, child.offsetLeft + child.offsetWidth,
-                    (delta) => {
-                      const percentage = child.offsetWidth - delta / length!;
+                    separatorBounds.y, separatorBounds.x,
+                    separatorBounds.height, separatorBounds.width,
+                    orientation,
+
+                    vertical ? rootBounds.y : rootBounds.x,
+                    vertical ? rootBounds.y + rootBounds.height
+                              : rootBounds.x + rootBounds.width,
+
+                    (mousePosition) => {
+                      console.log(`mouse up s! ${mousePosition} / ${length}`);
+                      if (childRef == null) return;
+                      console.log('mouse up!');
+
+                      const percentage = (mousePosition / length!) * 100;
 
                       setChildrenRatioState((val) => {
                         let cr = val!;
 
+                        console.log(`previous: ${val}`);
+
                         cr[idx + 1] += cr[idx] - percentage;
                         cr[idx] = percentage;
+
+                        console.log(`updated to ${cr}`);
 
                         return cr;
                       });
