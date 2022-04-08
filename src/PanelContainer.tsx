@@ -102,7 +102,7 @@ const PanelContainer = ({ children, separatorWidth, orientation }: PanelContaine
         }
 
         document.onmouseup = (e) => {
-          mousePosition = vertical ? e.clientY : e.clientY;
+          mousePosition = vertical ? e.clientY : e.clientX;
 
           if (indicator.current != null) { 
             console.log('gone');
