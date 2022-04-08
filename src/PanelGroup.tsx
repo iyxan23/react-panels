@@ -105,9 +105,12 @@ const PanelGroup = ({ childrenRatio, children, orientation }: PanelGroupProps): 
           // not the prettiest solution
           let style: React.CSSProperties = {};
           style[lengthProperty] = ratio / 100 * length!;
+          style['flexGrow'] = 1;
+          style['transition'] = 'all .25s';
 
           let separatorStyle: React.CSSProperties = {};
           separatorStyle[lengthProperty] = panelContainerContext.separatorWidth;
+          separatorStyle['cursor'] = orientation == 'vertical' ? 'row-resize' : 'col-resize';
 
           console.log(`result: ${style[lengthProperty]}`);
 
@@ -122,10 +125,9 @@ const PanelGroup = ({ childrenRatio, children, orientation }: PanelGroupProps): 
                 ref={(sr) => separatorRef = sr}
                 className='separator'
                 style={separatorStyle}
-                onMouseDown={() => {
-                  console.log('mouse down s!');
+                onMouseDown={(e) => {
+                  e.preventDefault();
                   if (separatorRef == null || childRef == null) return;
-                  console.log('mouse down!');
 
                   const vertical = orientation == 'vertical';
 

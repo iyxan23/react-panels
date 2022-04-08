@@ -91,10 +91,12 @@ const PanelContainer = ({ children, separatorWidth, orientation }: PanelContaine
 
             if (vertical) {
               indicator.current.style.transform =
-                `translateX(${x + width/2}px) translateY(${mousePosition}px) scaleX(10) scaleY(2)`;
+                `translateX(${(x + width/2)-5}px) translateY(${mousePosition - height/2}px) scaleX(${width/10}) scaleY(${height/10})`;
+              indicator.current.style.cursor = 'row-resize';
             } else {
               indicator.current.style.transform =
-                `translateX(${mousePosition}px) translateY(${y}px) scaleX(${width}) scaleY(${height})`;
+                `translateX(${mousePosition - width/2}px) translateY(${(y + height/2)-5}px) scaleX(${width/10}) scaleY(${height/10})`;
+              indicator.current.style.cursor = 'col-resize';
             }
 
             console.log(`transform: ${indicator.current.style.transform}`);
@@ -129,7 +131,7 @@ const PanelContainer = ({ children, separatorWidth, orientation }: PanelContaine
         backgroundColor: 'black',
         transition: 'opacity .25s ease-in-out',
         transform: 'initial',
-        cursor: 'grabbing'
+        display: 'none'
       }}>&nbsp;</div>
 
     <PanelGroup orientation={orientation}>
