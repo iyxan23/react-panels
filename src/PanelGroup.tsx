@@ -149,11 +149,10 @@ const PanelGroup = ({ childrenRatio, children, orientation }: PanelGroupProps): 
                       const percentage = (mousePosition / length!) * 100;
 
                       setChildrenRatioState((val) => {
-                        let cr = val!;
-
                         console.log(`previous: ${val}`);
+                        let cr = [...val];
 
-                        cr[idx + 1] += cr[idx] - percentage;
+                        cr[idx + 1] += val[idx] - percentage;
                         cr[idx] = percentage;
 
                         console.log(`updated to ${cr}`);
