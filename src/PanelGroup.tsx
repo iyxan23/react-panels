@@ -105,7 +105,6 @@ const PanelGroup = ({ childrenRatio, children, orientation }: PanelGroupProps): 
           // not the prettiest solution
           let style: React.CSSProperties = {};
           style[lengthProperty] = ratio / 100 * length!;
-          style['flexGrow'] = 1;
           style['transition'] = 'all .25s';
 
           let separatorStyle: React.CSSProperties = {};
