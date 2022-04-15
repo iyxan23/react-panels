@@ -65,10 +65,13 @@ const PanelGroup = ({ childrenRatio, children, orientation }: PanelGroupProps): 
     if (children == undefined) return;
 
     const separatorCount = ('length' in children ? children.length : 1) - 1;
+    const newLength =
+      root.current![orientation == 'vertical' ? 'offsetHeight' : 'offsetWidth']
+      - (separatorCount * panelContainerContext.separatorWidth);
 
-    setLength(
-      root.current!.offsetWidth - (separatorCount * panelContainerContext.separatorWidth)
-    );
+    console.log(`length: ${newLength} ${orientation}`);
+
+    setLength(newLength);
   }
 
   useEffect(calculateLength, []);
@@ -145,9 +148,11 @@ const PanelGroup = ({ childrenRatio, children, orientation }: PanelGroupProps): 
                     (mousePosition) => {
                       console.log(`mouse up s! ${mousePosition} / ${length}`);
                       if (childRef == null) return;
-                      console.log('mouse up!');
 
-                      const percentage = (mousePosition / length!) * 100;
+                      const childBounds = childRef.getBoundingClientRect();
+                      const childOffset = vertical ? childBounds.top : childBounds.left;
+
+                      const percentage = (mousePosition - childOffset) / length! * 100;
 
                       setChildrenRatioState((val) => {
                         console.log(`previous: ${val}`);
