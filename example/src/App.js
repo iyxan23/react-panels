@@ -1,6 +1,6 @@
 import logo from './logo.svg';
 import './App.css';
-import React from 'react';
+import React, { useState } from 'react';
 import { Panel, PanelContainer, PanelGroup } from 'react-panels';
 
 function Main() {
@@ -24,29 +24,38 @@ function Main() {
   );
 }
 
+function PanelPlaceholder(props) {
+  return (
+    <div style={{ backgroundColor: 'deepskyblue', color: 'white',
+      height: '100%',
+      display: 'flex', justifyContent: 'center', alignItems: 'center'
+    }}>Hello world {props.index}</div>
+  );
+}
+
 function App() {
-  window.React1 = React;
+  let [panels, setPanels] = useState([
+    <PanelPlaceholder />,
+    <div style={{ backgroundColor: 'darkgreen', color: 'white',
+      height: '100%',
+      display: 'flex', justifyContent: 'center', alignItems: 'center'
+    }}>
+      <button onClick={() => {
+        setPanels((prevPanels) => {
+          return [...prevPanels, <PanelPlaceholder index={panels.length + 1} />];
+        })
+      }}>Create a new panel</button>
+    </div>
+  ]);
+
   return (
     <div style={{ height: '100vh', width: '100vw' }}>
       <PanelContainer>
         <Panel><Main/></Panel>
         <PanelGroup orientation='vertical'>
-          <Panel>
-            <div style={{ backgroundColor: 'deepskyblue', color: 'white',
-              height: '100%',
-              display: 'flex', justifyContent: 'center', alignItems: 'center'
-            }}>
-              Hello world
-            </div>
-          </Panel>
-          <Panel>
-            <div style={{ backgroundColor: 'darkgreen', color: 'white',
-              height: '100%',
-              display: 'flex', justifyContent: 'center', alignItems: 'center'
-            }}>
-              Hello world
-            </div>
-          </Panel>
+          {panels.map((child, idx) => {
+            return <Panel key={idx}>{child}</Panel>
+          })}
         </PanelGroup>
       </PanelContainer>
     </div>
