@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState, useMemo } from 'react';
+import React, { useContext, useEffect, useRef, useState, useMemo, Component } from 'react';
 import { PanelChildren, PanelContainerContext } from './PanelContainer';
 
 export interface PanelGroupProps {
@@ -6,6 +6,10 @@ export interface PanelGroupProps {
   childrenRatio?: Array<number>;
   children?: PanelChildren;
   orientation: Orientation
+}
+
+interface PanelGroupState {
+  
 }
 
 export type Orientation = 'vertical' | 'horizontal';
@@ -43,7 +47,28 @@ function verifyChildren(childrenRatio?: Array<number>, children?: PanelChildren)
   return undefined;
 }
 
-const PanelGroup = ({ childrenRatio, children, orientation }: PanelGroupProps): JSX.Element => {
+export default class PanelGroup extends Component<PanelGroupProps, PanelGroupState> {
+  constructor(props: PanelGroupProps) {
+    super(props)
+    this.state = {}
+    // todo
+  }
+
+  static getDerivedStateFromProps(nextProps: PanelGroupProps, prevState: PanelGroupState) {
+
+  }
+
+  render() {  
+    return <div
+      style={{
+        width: '100%', height: '100%',
+        display: 'flex',
+        flexDirection: this.props.orientation == 'vertical' ? 'column' : 'row'
+      }}/>
+  }
+}
+
+const PanelGroupFC = ({ childrenRatio, children, orientation }: PanelGroupProps): JSX.Element => {
   // verify props
   childrenRatio = useMemo(() => verifyChildren(childrenRatio, children), []) ?? childrenRatio;
 
@@ -181,5 +206,3 @@ const PanelGroup = ({ childrenRatio, children, orientation }: PanelGroupProps): 
 
     </div>;
 }
-
-export default PanelGroup;
