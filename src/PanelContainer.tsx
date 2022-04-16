@@ -64,7 +64,7 @@ const PanelContainer = ({ children, separatorWidth, orientation }: PanelContaine
               indicator.current.style.cursor = 'col-resize';
             }
 
-            console.log(`transform: ${indicator.current.style.transform}`);
+            // console.log(`transform: ${indicator.current.style.transform}`);
           }
         }
 
