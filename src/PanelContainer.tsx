@@ -16,9 +16,9 @@ export interface PanelContainerProps {
   separatorWidth?: number;
 
   /**
-   * The orientation of this panel container
+   * The orientation of this panel container, defaults to horizontal
    */
-  orientation: Orientation;
+  orientation?: Orientation;
 }
 
 const PanelContainer = ({ children, separatorWidth, orientation }: PanelContainerProps) => {
@@ -99,7 +99,7 @@ const PanelContainer = ({ children, separatorWidth, orientation }: PanelContaine
         display: 'none'
       }}>&nbsp;</div>
 
-    <PanelGroup orientation={orientation}>
+    <PanelGroup orientation={orientation ?? 'horizontal'}>
       {children}
     </PanelGroup>
   </PanelContainerContext.Provider>;
