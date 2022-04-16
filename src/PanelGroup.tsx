@@ -76,7 +76,7 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
       for (let i = 0; i < newChildrenRatio.length; i++) {
         newChildrenRatio[i] +=
           flatRatio / newChildrenRatio.length
-          * (delta < 0 ? -1 : 1); // convert to negative if delta is negative (a panel is removed)
+          * (delta < 0 ? 1 : -1);
       }
 
       // then add the new panels
