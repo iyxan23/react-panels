@@ -162,6 +162,9 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
                 : rootBounds.x + rootBounds.width,
 
       (mousePosition: number) => {
+        // would be better when the cursor is right in the center of the separator when resizing
+        mousePosition -= this.context.separatorWidth / 2;
+
         console.log(`mouse up s! ${mousePosition} / ${this.state.length}`);
         if (childRef == null) return;
 
