@@ -60,7 +60,15 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
     // but only gives a single value when there is only one child aaaaAAAAAAAAAAAAARRRRRRRRGHHHHHHHHH
     if ('length' in nextProps.children && 'length' in prevState.children) {
       const delta = nextProps.children.length - prevState.children.length;
-      const flatRatio = 1 / (nextProps.children.length + delta) * 100;
+      const flatRatio = 1 / (prevState.children.length + delta) * 100;
+
+      // when delta is 0 (there is no child addition/removal), we dont need to update the ratio
+      if (delta == 0) {
+        return {
+          ...prevState,
+          children: nextProps.children
+        };
+      }
 
       let newChildrenRatio = [...prevState.childrenRatio];
 
