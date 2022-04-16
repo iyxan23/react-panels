@@ -1,15 +1,17 @@
-import React, { useContext, useEffect, useRef, useState, useMemo, Component } from 'react';
+import React, { useContext, useEffect, useRef, useState, useMemo, Component, Children } from 'react';
 import { PanelChildren, PanelContainerContext } from './PanelContainer';
 
 export interface PanelGroupProps {
   // sum of all of the ratio values in panels should be 100
-  childrenRatio?: Array<number>;
+  childrenRatio?: number[];
   children?: PanelChildren;
-  orientation: Orientation
+  orientation: Orientation;
 }
 
 interface PanelGroupState {
-  
+  children?: PanelChildren,
+  childrenRatio: number[];
+  length?: number;
 }
 
 export type Orientation = 'vertical' | 'horizontal';
@@ -48,23 +50,102 @@ function verifyChildren(childrenRatio?: Array<number>, children?: PanelChildren)
 }
 
 export default class PanelGroup extends Component<PanelGroupProps, PanelGroupState> {
+  private rootRef: React.RefObject<HTMLDivElement>;
+
   constructor(props: PanelGroupProps) {
-    super(props)
-    this.state = {}
-    // todo
+    super(props);
+
+    let childrenRatio = props.childrenRatio;
+
+    // this function verifies props and populates childrenRatio when it's undefined
+    this.verifyProps = this.verifyProps.bind(this);
+    this.verifyProps((newRatio) => {
+      childrenRatio = newRatio;
+    });
+
+    this.state = {
+      children: props.children,
+      childrenRatio: childrenRatio!, // can not be undefined
+    };
+    
+    this.rootRef = React.createRef();
   }
 
+  // updates childrenRatio according to children
   static getDerivedStateFromProps(nextProps: PanelGroupProps, prevState: PanelGroupState) {
+    // todo: deal with these unlikely edge cases
+    if (prevState.children !== nextProps.children) return null;
+    if (nextProps.children === undefined || prevState.children === undefined) return null;
 
+    // i hate how react gives an array of children when there are multiple children,
+    // but only gives a single value when there is only one child aaaaAAAAAAAAAAAAARRRRRRRRGHHHHHHHHH
+    if ('length' in nextProps.children && 'length' in prevState.children) {
+      const delta = nextProps.children.length - prevState.children.length;
+      const flatRatio = 1 / (nextProps.children.length + delta) * 100;
+
+      let newChildrenRatio = [...prevState.childrenRatio];
+
+      // create space for new panels
+      for (let i = 0; i <= newChildrenRatio.length; i++) {
+        newChildrenRatio[i] +=
+          flatRatio / newChildrenRatio.length
+          * (delta < 0 ? -1 : 1); // convert to negative if delta is -1 (a panel is removed)
+      }
+
+      // then add the new panels
+      newChildrenRatio.push(...new Array(delta).fill(flatRatio) as number[]);
+
+      return {
+        ...prevState,
+        children: nextProps.children,
+        childrenRatio: newChildrenRatio,
+      };
+    }
   }
 
   render() {  
     return <div
+      ref={this.rootRef}
       style={{
         width: '100%', height: '100%',
         display: 'flex',
         flexDirection: this.props.orientation == 'vertical' ? 'column' : 'row'
-      }}/>
+      }}/>;
+  }
+
+  // verifies children and childrenRatio props
+  // and also populates childrenRatio when it's undefined
+  verifyProps(updateChildrenRatio: (n: number[]) => void) {
+    const childrenRatio = this.props.childrenRatio;
+    const children = this.props.children;
+
+    if (childrenRatio !== undefined && children !== undefined && 'length' in children) {
+      // verify childrenRatio's length against children's
+      if (childrenRatio.length !== children.length) {
+        throw new Error('childrenRatio and children does not have the same length');
+      }
+    }
+
+    if (childrenRatio !== undefined) {
+      // when childrenRatio is filled
+      // verify childrenRatio if it sums up to 100 (or close to it)
+      const childrenRatioSum = childrenRatio?.reduce((prev, cur) => prev + cur);
+      if (childrenRatioSum < 99 || childrenRatioSum > 101) {
+        throw new Error(`sum of childrenRatio is not close to 100 (${childrenRatioSum})`);
+      }
+
+      // and check for negative numbers, i really hate them - unsigned ints on js wen
+      for (const n of childrenRatio) {
+        if (n < 0) throw new Error(`childrenRatio must not contain negative numbers`);
+      }
+
+    } else if (children !== undefined) {
+      // when children is filled but childrenRatio is not
+      const numberOfChildren = 'length' in children ? children.length : 1;
+      const value = 100 / numberOfChildren;
+
+      updateChildrenRatio(new Array(numberOfChildren).fill(value));
+    }
   }
 }
 
