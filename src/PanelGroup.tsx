@@ -214,38 +214,38 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
         this.state.children !== undefined &&
 
         children.map((child, idx) => {
-            const ratio = this.state.childrenRatio[idx];
-            const lengthProp = vertical ? 'height' : 'width';
+          const ratio = this.state.childrenRatio[idx];
+          const lengthProp = vertical ? 'height' : 'width';
 
-            console.log(`rendering child index ${idx} with ratio ${ratio}`);
+          console.log(`rendering child index ${idx} with ratio ${ratio}`);
 
-            // creates styles for child and separator
-            let style: React.CSSProperties = {};
-            style[lengthProp] = ratio / 100 * this.state.length!;
-            style['transition'] = 'all .25s';
+          // creates styles for child and separator
+          let style: React.CSSProperties = {};
+          style[lengthProp] = ratio / 100 * this.state.length!;
+          style['transition'] = 'all .25s';
 
-            console.log('resulting child style:');
-            console.log(style);
+          console.log('resulting child style:');
+          console.log(style);
 
-            let separatorStyle: React.CSSProperties = {};
-            separatorStyle[lengthProp] = this.context.separatorWidth;
-            separatorStyle['cursor'] = vertical ? 'row-resize' : 'col-resize';
+          let separatorStyle: React.CSSProperties = {};
+          separatorStyle[lengthProp] = this.context.separatorWidth;
+          separatorStyle['cursor'] = vertical ? 'row-resize' : 'col-resize';
 
-            let childRef = React.createRef<HTMLDivElement>();
-            let separatorRef = React.createRef<HTMLDivElement>();
+          let childRef = React.createRef<HTMLDivElement>();
+          let separatorRef = React.createRef<HTMLDivElement>();
 
-            return <>
-              <div ref={childRef} key={idx} style={style}>{child}</div>
+          return <>
+            <div ref={childRef} key={idx} style={style}>{child}</div>
 
-              {children.length - 1 == idx ||
-                <div
-                  ref={separatorRef}
-                  className='separator'
-                  style={separatorStyle}
-                  onMouseDown={(e) => this.childResize(e, childRef, separatorRef, idx)} />
-              }
-            </>;
-          })
+            {children.length - 1 == idx ||
+              <div
+                ref={separatorRef}
+                className='separator'
+                style={separatorStyle}
+                onMouseDown={(e) => this.childResize(e, childRef, separatorRef, idx)} />
+            }
+          </>;
+        })
       }
 
     </div>;
