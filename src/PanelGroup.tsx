@@ -100,10 +100,29 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
         children: nextProps.children,
         childrenRatio: newChildrenRatio,
       };
+
+    } else if ('length' in nextProps.children) {
+      // nextProps has 1+ children, prevState has only 1
+      // fill ratio with 1 / length * 100
+      const length = nextProps.children.length;
+
+      return {
+        ...prevState,
+        children: nextProps.children,
+        childrenRatio: new Array(length).fill(1 / length * 100),
+      };
+
+    } else if ('length' in prevState.children) {
+      // nextProps has only 1 child, prevState has 1+ chidlren
+      return {
+        ...prevState,
+        children: nextProps.children,
+        childrenRatio: [100],
+      };
     }
   }
 
-  render() {  
+  render() {
     return <div
       ref={this.rootRef}
       style={{
