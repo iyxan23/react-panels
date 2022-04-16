@@ -1,5 +1,6 @@
-import React, { useContext, useEffect, useRef, useState, useMemo, Component, Children } from 'react';
-import { PanelChildren, PanelContainerContext } from './PanelContainer';
+import React, { Component } from 'react';
+import { PanelChildren } from './PanelContainer';
+import { PanelContainerContext, Orientation } from './PanelContainerContext';
 
 export interface PanelGroupProps {
   // sum of all of the ratio values in panels should be 100
@@ -14,7 +15,6 @@ interface PanelGroupState {
   length?: number;
 }
 
-export type Orientation = 'vertical' | 'horizontal';
 
 // returns a generated childrenRatio if it wasn't specified
 function verifyChildren(childrenRatio?: Array<number>, children?: PanelChildren): Array<number> | undefined {
