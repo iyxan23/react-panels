@@ -51,10 +51,10 @@ function App() {
   return (
     <div style={{ height: '100vh', width: '100vw' }}>
       <PanelContainer>
-        <Panel><Main/></Panel>
-        <PanelGroup orientation='vertical'>
+        <Panel id='main'><Main/></Panel>
+        <PanelGroup id='create panels' orientation='vertical'>
           {panels.map((child, idx) => {
-            return <Panel key={idx}>{child}</Panel>
+            return <Panel id={idx} key={idx}>{child}</Panel>
           })}
         </PanelGroup>
       </PanelContainer>

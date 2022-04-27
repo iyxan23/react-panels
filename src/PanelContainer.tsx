@@ -99,7 +99,7 @@ const PanelContainer = ({ children, separatorWidth, orientation }: PanelContaine
         display: 'none'
       }}>&nbsp;</div>
 
-    <PanelGroup orientation={orientation ?? 'horizontal'}>
+    <PanelGroup id='root' orientation={orientation ?? 'horizontal'}>
       {children}
     </PanelGroup>
   </PanelContainerContext.Provider>;

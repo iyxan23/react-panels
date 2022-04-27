@@ -1,17 +1,25 @@
 import React, { Component } from 'react';
-import { PanelChildren } from './PanelContainer';
+import { PanelChild, PanelChildren } from './PanelContainer';
 import { PanelContainerContext, Orientation } from './PanelContainerContext';
 
 export interface PanelGroupProps {
+  id: any;
   // sum of all of the ratio values in panels should be 100
-  childrenRatio?: number[];
+  childrenRatio?: Map<any, number>;
   children?: PanelChildren;
   orientation?: Orientation;
 }
 
 interface PanelGroupState {
-  children?: PanelChildren,
-  childrenRatio: number[];
+  // stores the children of this group mapped to its own ids
+  children?: Map<any, PanelChild>,
+
+  // stores the ratios of the children of this group, mapped to the children's id
+  childrenRatio: Map<any, number>;
+
+  // stores the order of children, a list of ids that can be indexed on childrenRatio or children
+  childrenOrder: any[];
+
   orientation: Orientation;
   length?: number;
 }
@@ -28,13 +36,17 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
     // this function verifies props and populates childrenRatio when it's undefined
     this.verifyProps = this.verifyProps.bind(this);
     this.verifyProps((newRatio) => {
-      console.log(`populated ratio: ${newRatio}`);
+      console.log('populated ratio: ');
+      console.log(newRatio);
       childrenRatio = newRatio;
     });
 
+    let [children, childrenOrder] = mapChildren(props.children);
+
     this.state = {
-      children: props.children,
+      children,
       childrenRatio: childrenRatio!, // can not be undefined
+      childrenOrder,
       orientation: props.orientation ?? 'horizontal'
     };
     
@@ -53,60 +65,78 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
     console.log(nextProps);
 
     // todo: deal with unlikely edge cases like children going undefined
-    if (prevState.children === nextProps.children) return null;
     if (nextProps.children === undefined || prevState.children === undefined) return null;
+    if (Array.from(prevState.children.values()) === nextProps.children) return null;
 
-    // i hate how react gives an array of children when there are multiple children,
-    // but only gives a single value when there is only one child aaaaAAAAAAAAAAAAARRRRRRRRGHHHHHHHHH
-    if ('length' in nextProps.children && 'length' in prevState.children) {
-      const delta = nextProps.children.length - prevState.children.length;
-      const flatRatio = 1 / (prevState.children.length + delta) * 100;
+    if ('length' in nextProps.children && prevState.children.size > 1) {
+      const delta = nextProps.children.length - prevState.children.size;
+      const flatRatio = 1 / (prevState.children.size + delta) * 100;
+
+      const [mappedChildren, newChildrenOrder] = mapChildren(nextProps.children);
 
       // when delta is 0 (there is no child addition/removal), we dont need to update the ratio
       if (delta == 0) {
         return {
           ...prevState,
-          children: nextProps.children
+          children: mappedChildren,
+          childrenOrder: newChildrenOrder,
         };
       }
 
-      let newChildrenRatio = [...prevState.childrenRatio];
+      let newChildrenRatio = new Map(prevState.childrenRatio);
 
       // create space for new panels
-      for (let i = 0; i < newChildrenRatio.length; i++) {
-        newChildrenRatio[i] +=
-          flatRatio / newChildrenRatio.length
-          * (delta < 0 ? 1 : -1);
+      for (const id of prevState.childrenOrder) {
+        newChildrenRatio.set(
+          id,
+          flatRatio / newChildrenRatio.size
+          * (delta < 0 ? 1 : -1)
+        );
       }
 
-      // then add the new panels
-      newChildrenRatio.push(...new Array(delta).fill(flatRatio) as number[]);
+      if (delta > 0) {
+        // then add the new panels
+        for (let i = 0; i < delta; i++) {
+          newChildrenRatio.set(newChildrenOrder[i], flatRatio);
+        }
+      }
 
       console.log(`new childrenRatio: ${newChildrenRatio}`);
 
       return {
         ...prevState,
-        children: nextProps.children,
+        children: mappedChildren,
         childrenRatio: newChildrenRatio,
+        childrenOrder: newChildrenOrder
       };
 
     } else if ('length' in nextProps.children) {
       // nextProps has 1+ children, prevState has only 1
       // fill ratio with 1 / length * 100
-      const length = nextProps.children.length;
+      const ratio = 1 / nextProps.children.length * 100;
+      const [children, childrenOrder] = mapChildren(nextProps.children);
 
       return {
         ...prevState,
-        children: nextProps.children,
-        childrenRatio: new Array(length).fill(1 / length * 100),
+        children,
+        childrenRatio: new Map(childrenOrder.map((id) => [id, ratio])),
+        childrenOrder,
       };
 
     } else if ('length' in prevState.children) {
       // nextProps has only 1 child, prevState has 1+ chidlren
+      const [children, childrenOrder] = mapChildren(nextProps.children);
+
+      // retrieves the first and only child and set the ratio to 100
+      let childrenRatio = new Map();
+      const [id, _] = children.entries().next().value;
+      childrenRatio.set(id, 100);
+
       return {
         ...prevState,
-        children: nextProps.children,
-        childrenRatio: [100],
+        children,
+        childrenRatio,
+        childrenOrder,
       };
     }
   }
@@ -131,7 +161,7 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
     console.log('recalcualte length');
     if (this.state.children == undefined) return;
 
-    const separatorCount = ('length' in this.state.children ? this.state.children.length : 1) - 1;
+    const separatorCount = this.state.children.size - 1;
     const newLength =
       this.rootRef.current![this.state.orientation == 'vertical' ? 'offsetHeight' : 'offsetWidth']
       - (separatorCount * this.context.separatorWidth);
@@ -146,7 +176,7 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
     childRef: React.RefObject<HTMLDivElement>,
     separatorRef: React.RefObject<HTMLDivElement>,
 
-    index: number
+    childId: any
   ) {
     event.preventDefault();
 
@@ -159,13 +189,19 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
 
     const separatorBounds = separator.getBoundingClientRect();
     const rootBounds = this.rootRef.current!.getBoundingClientRect();
+    const childBounds = child.getBoundingClientRect();
+
+    const nextChildId =
+      this.state.childrenOrder[
+        this.state.childrenOrder.findIndex((v) => v == childId) + 1
+      ];
 
     this.context.showResizeIndicator(
       separatorBounds.y, separatorBounds.x,
       separatorBounds.height, separatorBounds.width,
       this.state.orientation,
 
-      vertical ? rootBounds.y : rootBounds.x,
+      vertical ? childBounds.y : childBounds.x,
       vertical ? rootBounds.y + rootBounds.height
                 : rootBounds.x + rootBounds.width,
 
@@ -182,14 +218,19 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
         const percentage = (mousePosition - childOffset) / this.state.length! * 100;
 
         this.setState((prev) => {
-          console.log(`prev ratio: ${prev.childrenRatio}`);
+          let newChildrenRatio = new Map(prev.childrenRatio);
 
-          let newChildrenRatio = [...prev.childrenRatio];
+          // get the next child and add / subtract its ratio based on how much space it lost / gained
+          newChildrenRatio.set(
+            nextChildId,
+            newChildrenRatio.get(nextChildId)! + prev.childrenRatio.get(childId)! - percentage
+          );
 
-          newChildrenRatio[index + 1] += prev.childrenRatio[index] - percentage;
-          newChildrenRatio[index] = percentage;
 
-          console.log(`new ratio: ${newChildrenRatio}`);
+          newChildrenRatio.set(
+            childId,
+            percentage
+          );
 
           return { childrenRatio: newChildrenRatio };
         });
@@ -199,7 +240,6 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
 
   render() {
     const vertical = this.state.orientation == 'vertical';
-    const children = React.Children.toArray(this.state.children);
 
     return <div
       ref={this.rootRef}
@@ -213,11 +253,12 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
         this.state.length &&
         this.state.children !== undefined &&
 
-        children.map((child, idx) => {
-          const ratio = this.state.childrenRatio[idx];
+        this.state.childrenOrder.map((id, idx) => {
+          const child = this.state.children!.get(id);
+          const ratio = this.state.childrenRatio.get(id)!;
           const lengthProp = vertical ? 'height' : 'width';
 
-          console.log(`rendering child index ${idx} with ratio ${ratio}`);
+          console.log(`rendering child with id ${id} with ratio ${ratio}`);
 
           // creates styles for child and separator
           let style: React.CSSProperties = {};
@@ -237,12 +278,12 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
           return <>
             <div ref={childRef} key={idx} style={style}>{child}</div>
 
-            {children.length - 1 == idx ||
+            {this.state.childrenRatio.size - 1 == idx ||
               <div
                 ref={separatorRef}
                 className='separator'
                 style={separatorStyle}
-                onMouseDown={(e) => this.childResize(e, childRef, separatorRef, idx)} />
+                onMouseDown={(e) => this.childResize(e, childRef, separatorRef, id)} />
             }
           </>;
         })
@@ -253,13 +294,13 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
 
   // verifies children and childrenRatio props
   // and also populates childrenRatio if it's undefined
-  verifyProps(updateChildrenRatio: (n: number[]) => void) {
+  verifyProps(updateChildrenRatio: (n: Map<any, number>) => void) {
     const childrenRatio = this.props.childrenRatio;
     const children = this.props.children;
 
     if (childrenRatio !== undefined && children !== undefined && 'length' in children) {
       // verify childrenRatio's length against children's
-      if (childrenRatio.length !== children.length) {
+      if (childrenRatio.size !== children.length) {
         throw new Error('childrenRatio and children does not have the same length');
       }
     }
@@ -267,22 +308,43 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
     if (childrenRatio !== undefined) {
       // when childrenRatio is filled
       // verify childrenRatio if it sums up to 100 (or close to it)
-      const childrenRatioSum = childrenRatio?.reduce((prev, cur) => prev + cur);
+      const childrenRatioSum = Array.from(childrenRatio.values())?.reduce((prev, cur) => prev + cur);
       if (childrenRatioSum < 99 || childrenRatioSum > 101) {
         throw new Error(`sum of childrenRatio is not close to 100 (${childrenRatioSum})`);
       }
 
       // and check for negative numbers, i really hate them - unsigned ints on js wen
-      for (const n of childrenRatio) {
+      for (const [ _, n ] of childrenRatio) {
         if (n < 0) throw new Error(`childrenRatio must not contain negative numbers`);
       }
 
     } else if (children !== undefined) {
-      // when children is filled but childrenRatio is not
+      // when children is filled but childrenRatio is not, make em all equal
       const numberOfChildren = 'length' in children ? children.length : 1;
       const value = 100 / numberOfChildren;
 
-      updateChildrenRatio(new Array(numberOfChildren).fill(value));
+      console.log(`verifyProps: settin val ${value} to kids`);
+
+      // map children keys to the equal value
+      updateChildrenRatio(new Map(
+        Array.from(mapChildren(children)[0].keys())
+          .map((key) => [key, value])
+      ));
     }
   }
+}
+
+// Maps panel children according to their ids
+function mapChildren(children?: PanelChildren): [Map<any, PanelChild>, any[]] {
+  let result = new Map();
+  let order: any[] = [];
+
+  React.Children.forEach(children, (child) => {
+    if (!child) return;
+
+    result.set(child.props.id, child);
+    order.push(child.props.id);
+  });
+
+  return [result, order];
 }

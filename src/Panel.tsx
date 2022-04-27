@@ -1,6 +1,7 @@
 import React from 'react';
 
 export interface PanelProps {
+  id: any;
   children?: React.ReactNode;
 }
 
