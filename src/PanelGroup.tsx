@@ -66,9 +66,10 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
 
     // todo: deal with unlikely edge cases like children going undefined
     if (nextProps.children === undefined || prevState.children === undefined) return null;
-    if (Array.from(prevState.children.values()) === nextProps.children) return null;
+    if (Array.from(prevState.children.values()) === nextProps.children) return null; // todo: this doesnt do anything
 
     if ('length' in nextProps.children && prevState.children.size > 1) {
+      console.log('new child!!!');
       const delta = nextProps.children.length - prevState.children.size;
       const flatRatio = 1 / (prevState.children.size + delta) * 100;
 
@@ -89,19 +90,26 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
       for (const id of prevState.childrenOrder) {
         newChildrenRatio.set(
           id,
-          flatRatio / newChildrenRatio.size
-          * (delta < 0 ? 1 : -1)
+          newChildrenRatio.get(id)! +
+            flatRatio / newChildrenRatio.size
+            * (delta < 0 ? 1 : -1)
         );
       }
 
       if (delta > 0) {
         // then add the new panels
-        for (let i = 0; i < delta; i++) {
+        // loops from the back of newChildrenOrder for `delta` times
+        for (let i = newChildrenOrder.length - 1; i >= newChildrenOrder.length - delta; i--) {
           newChildrenRatio.set(newChildrenOrder[i], flatRatio);
         }
+      } else if (delta < 0) {
+        // todo: delete the panels that got deleted on newChildrenOrder from childrenOrder
+        // prevState.childrenOrder
       }
 
-      console.log(`new childrenRatio: ${newChildrenRatio}`);
+      console.log('new childrenRatio & order');
+      console.log(newChildrenRatio);
+      console.log(newChildrenOrder);
 
       return {
         ...prevState,
@@ -276,7 +284,7 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
           let separatorRef = React.createRef<HTMLDivElement>();
 
           return <>
-            <div ref={childRef} key={idx} style={style}>{child}</div>
+            <div ref={childRef} key={id} style={style}>{child}</div>
 
             {this.state.childrenRatio.size - 1 == idx ||
               <div
