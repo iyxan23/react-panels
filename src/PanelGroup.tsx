@@ -22,6 +22,8 @@ interface PanelGroupState {
 
   orientation: Orientation;
   length?: number;
+
+  childRefs: Map<any, React.RefObject<HTMLDivElement>>;
 }
 
 export default class PanelGroup extends Component<PanelGroupProps, PanelGroupState> {
@@ -47,7 +49,11 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
       children,
       childrenRatio: childrenRatio!, // can not be undefined
       childrenOrder,
-      orientation: props.orientation ?? 'horizontal'
+      orientation: props.orientation ?? 'horizontal',
+      childRefs: new Map(
+        Array.from(children.entries())
+          .map(([key, _]) => [key, React.createRef()])
+      )
     };
     
     this.rootRef = React.createRef();
@@ -196,22 +202,26 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
     const vertical = this.state.orientation == 'vertical';
 
     const separatorBounds = separator.getBoundingClientRect();
-    const rootBounds = this.rootRef.current!.getBoundingClientRect();
     const childBounds = child.getBoundingClientRect();
 
+    // retrieve the next child id and bounds
     const nextChildId =
       this.state.childrenOrder[
         this.state.childrenOrder.findIndex((v) => v == childId) + 1
       ];
+    const nextChildRef = this.state.childRefs.get(nextChildId)!.current!;
+    const nextChildBounds = nextChildRef.getBoundingClientRect();
 
+    // then start the dragging and let the panel container handle
+    // the resize indicator
     this.context.showResizeIndicator(
       separatorBounds.y, separatorBounds.x,
       separatorBounds.height, separatorBounds.width,
       this.state.orientation,
 
       vertical ? childBounds.y : childBounds.x,
-      vertical ? rootBounds.y + rootBounds.height
-                : rootBounds.x + rootBounds.width,
+      vertical ? nextChildBounds.y + nextChildBounds.height
+                : nextChildBounds.x + nextChildBounds.width,
 
       (mousePosition: number) => {
         // would be better when the cursor is right in the center of the separator when resizing
@@ -233,7 +243,6 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
             nextChildId,
             newChildrenRatio.get(nextChildId)! + prev.childrenRatio.get(childId)! - percentage
           );
-
 
           newChildrenRatio.set(
             childId,
@@ -280,7 +289,7 @@ export default class PanelGroup extends Component<PanelGroupProps, PanelGroupSta
           separatorStyle[lengthProp] = this.context.separatorWidth;
           separatorStyle['cursor'] = vertical ? 'row-resize' : 'col-resize';
 
-          let childRef = React.createRef<HTMLDivElement>();
+          let childRef = this.state.childRefs.get(id)!;
           let separatorRef = React.createRef<HTMLDivElement>();
 
           return <>
